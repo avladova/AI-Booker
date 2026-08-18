@@ -1,180 +1,197 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-Бухгалтер: Прототип</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Локальный MVP AI-Бухгалтер: распознавание русскоязычной первички и прогноз кассовых разрывов." />
+  <title>AI-Бухгалтер — первичка и денежный план</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Шапка -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <h1 class="text-2xl font-bold text-gray-900">AI-Бухгалтер</h1>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-500">Прототип v0.1</span>
-                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Экспорт в 1С</button>
-                </div>
-            </div>
+<body>
+  <a class="skip-link" href="#main-content">Перейти к содержанию</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">АБ</div>
+        <div>
+          <p class="eyebrow">AI-Бухгалтер</p>
+          <h1>Первичка и денежный план</h1>
         </div>
+      </div>
+      <div class="topbar-meta">
+        <span class="secure-badge"><span class="secure-dot" aria-hidden="true"></span>Документы обрабатываются в браузере</span>
+        <button class="button button-secondary" id="download-json" type="button">Скачать реестр JSON</button>
+      </div>
     </header>
 
-    <div class="flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Боковое меню -->
-        <aside class="w-64 bg-white rounded-lg shadow-sm mr-8 p-6 h-fit sticky top-8">
-            <nav class="space-y-2">
-                <a href="#upload" class="flex items-center p-3 rounded-lg text-blue-700 bg-blue-50 border-r-4 border-blue-500">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    1. Загрузка документов
-                </a>
-                <a href="#matching" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
-                    2. Сопоставление
-                </a>
-                <a href="#postings" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    3. Проводки
-                </a>
-                <a href="#anomalies" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
-                    4. Аномалии
-                </a>
-                <a href="#forecast" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    5. Прогноз
-                </a>
-                <a href="#integration" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    6. Интеграция 1С
-                </a>
-            </nav>
-        </aside>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="Навигация по модулям">
+        <nav>
+          <a class="nav-link active" href="#recognition"><span class="nav-icon" aria-hidden="true">01</span>Распознавание</a>
+          <a class="nav-link" href="#documents"><span class="nav-icon" aria-hidden="true">02</span>Реестр документов</a>
+          <a class="nav-link" href="#forecast"><span class="nav-icon" aria-hidden="true">03</span>Кассовый план</a>
+          <a class="nav-link" href="#method"><span class="nav-icon" aria-hidden="true">i</span>Методика</a>
+        </nav>
+        <div class="sidebar-note">
+          <strong>Режим MVP</strong>
+          <p>Результаты не сохраняются автоматически и удаляются при обновлении страницы. Скачайте реестр, если он нужен для дальнейшей работы.</p>
+        </div>
+      </aside>
 
-        <!-- Основной контент -->
-        <main class="flex-1">
-            <!-- 1. Загрузка документов -->
-            <section id="upload" class="bg-white rounded-lg shadow-sm p-8 mb-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                    <svg class="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Компьютерное зрение
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors">
-                        <svg class="mx-auto h-24 w-24 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Загрузить документы</h3>
-                        <p class="text-sm text-gray-500 mb-4">Почта, ЭДО, банк, файлы</p>
-                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Выбрать файлы</button>
-                    </div>
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-4">Результат распознавания (125 файлов)</h4>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <span>Счет №INV-245</span>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">✓ Сумма: 125 000₽</span>
-                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <span>Платежка №P-789</span>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">⚠ Контрагент</span>
-                                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+      <main id="main-content">
+        <section class="hero" aria-labelledby="hero-title">
+          <div>
+            <p class="eyebrow eyebrow-blue">Рабочий контур</p>
+            <h2 id="hero-title">Превращайте первичные документы в проверяемые реквизиты и план денежных потоков</h2>
+            <p>Загрузите скан, изображение или PDF. Сервис распознает русскоязычный текст локально, выделит основные реквизиты и позволит внести ожидаемое движение денег в прогноз.</p>
+          </div>
+          <div class="hero-summary" aria-label="Статус текущей сессии">
+            <div><span id="hero-doc-count">0</span><small>документов в сессии</small></div>
+            <div><span id="hero-operation-count">0</span><small>плановых операций</small></div>
+          </div>
+        </section>
 
-            <!-- 2. Сопоставление -->
-            <section id="matching" class="bg-white rounded-lg shadow-sm p-8 mb-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Семантическое сопоставление</h2>
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="border p-6 rounded-lg">
-                        <h4 class="font-medium mb-3">Платежи (47)</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between"><span>Платежка 15.02</span><span>245 000₽</span></div>
-                            <div class="flex justify-between"><span>Платежка 14.02</span><span>89 000₽</span></div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center py-12">
-                        <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11h3l2 2 2-2h3"></path>
-                        </svg>
-                    </div>
-                    <div class="border p-6 rounded-lg">
-                        <h4 class="font-medium mb-3">Документы (47)</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between"><span>Счет INV-245</span><span>✓ 245 000₽</span></div>
-                            <div class="flex justify-between"><span>Акт №ACT-12</span><span>89 000₽</span></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+        <section id="recognition" class="panel recognition-panel" aria-labelledby="recognition-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow eyebrow-blue">Модуль 01</p>
+              <h2 id="recognition-title">Распознавание первички</h2>
+              <p>Поддерживаются JPG, PNG, WEBP и PDF. Для сканированного PDF обрабатываются до пяти первых страниц; для PDF с текстовым слоем текст извлекается напрямую.</p>
+            </div>
+            <div class="engine-pill" title="Tesseract.js + русская и английская языковые модели">OCR: rus + eng</div>
+          </div>
 
-            <!-- Быстрые карточки остальных задач -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div id="postings" class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-2">Авто-проводки</h3>
-                    <p class="mb-4">Дт 62 Кт 51 | Дт 51 Кт 62</p>
-                    <div class="flex items-center justify-between">
-                        <span class="text-2xl font-bold">98%</span>
-                        <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm">Уверенность</span>
-                    </div>
-                </div>
-                <div id="anomalies" class="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 rounded-xl shadow-lg border-2 border-red-200 border-opacity-30">
-                    <h3 class="text-xl font-bold mb-2">Аномалии</h3>
-                    <p class="mb-4">3 подозрительные операции</p>
-                    <div class="flex items-center justify-between">
-                        <span class="text-2xl font-bold">2 критично</span>
-                        <button class="px-4 py-1 bg-white bg-opacity-20 rounded-full text-sm hover:bg-opacity-30">Проверить</button>
-                    </div>
-                </div>
-                <div id="forecast" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-2">Кассовые разрывы</h3>
-                    <p class="mb-4">Прогноз на 30 дней</p>
-                    <div class="flex items-center justify-between">
-                        <span class="text-2xl font-bold">+1.2 млн₽</span>
-                        <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm">✓ Без рисков</span>
-                    </div>
-                </div>
+          <div class="upload-grid">
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Выберите документы для распознавания">
+              <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden />
+              <div class="upload-icon" aria-hidden="true">⇧</div>
+              <h3>Загрузить документы</h3>
+              <p>Перетащите файлы сюда или выберите их на устройстве.</p>
+              <button class="button button-primary" id="choose-files" type="button">Выбрать файлы</button>
+              <small>JPG, PNG, WEBP, PDF · до 15 МБ на файл</small>
             </div>
 
-            <!-- Интеграция 1С -->
-            <section id="integration" class="bg-white rounded-lg shadow-sm p-8 mt-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Интеграция с 1С</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="text-center p-8 border-2 border-dashed rounded-xl border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        <h4 class="font-semibold text-lg mb-2">Экспорт проводок</h4>
-                        <p class="text-gray-600 mb-4">245 операций готовы</p>
-                        <button class="w-full bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 font-medium">→ Отправить в 1С</button>
-                    </div>
-                    <div class="text-center p-8 border-2 border-dashed rounded-xl border-gray-200">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        <h4 class="font-semibold text-lg mb-2">Импорт из 1С</h4>
-                        <p class="text-gray-600 mb-4">Синхронизация планов счетов</p>
-                        <button class="w-full bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 font-medium">Синхронизировать</button>
-                    </div>
-                    <div class="md:col-span-1 text-center p-8 bg-gray-50 rounded-xl">
-                        <h4 class="font-semibold text-lg mb-2">Статус транзакций</h4>
-                        <div class="space-y-2 mt-4">
-                            <div class="flex justify-between text-sm"><span>Подтверждено</span><span class="font-semibold text-green-600">245</span></div>
-                            <div class="flex justify-between text-sm"><span>В работе</span><span class="font-semibold text-blue-600">12</span></div>
-                            <div class="flex justify-between text-sm"><span>Откаты</span><span class="font-semibold text-red-600">0</span></div>
-                        </div>
-                    </div>
+            <div class="recognition-status" aria-live="polite">
+              <div class="status-header">
+                <div>
+                  <span class="label">Состояние обработки</span>
+                  <strong id="ocr-status">Ожидание документов</strong>
                 </div>
-            </section>
-        </main>
+                <span class="status-percent" id="ocr-percent">0%</span>
+              </div>
+              <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="ocr-progress"></div></div>
+              <ul class="status-list">
+                <li><span class="status-check" id="status-upload">1</span><span>Приём файла</span></li>
+                <li><span class="status-check" id="status-ocr">2</span><span>Распознавание текста</span></li>
+                <li><span class="status-check" id="status-fields">3</span><span>Выделение реквизитов</span></li>
+              </ul>
+              <div class="privacy-callout"><strong>Конфиденциальность.</strong> Содержимое файлов остаётся на устройстве: оно не отправляется этим приложением в сторонний OCR API. Для работы загружаются только программные компоненты OCR из CDN.</div>
+            </div>
+          </div>
+          <div class="recognition-alert hidden" id="recognition-alert" role="alert"></div>
+        </section>
+
+        <section id="documents" class="panel" aria-labelledby="documents-title">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow eyebrow-blue">Модуль 02</p>
+              <h2 id="documents-title">Реестр распознанных документов</h2>
+              <p>Проверьте поля с низкой уверенностью. Исправление реквизита влияет на реестр, но не изменяет исходный OCR-текст.</p>
+            </div>
+            <div class="header-actions">
+              <span class="counter" id="document-counter">0 документов</span>
+              <button class="text-button" id="clear-documents" type="button" disabled>Очистить</button>
+            </div>
+          </div>
+          <div id="document-list" class="document-list">
+            <div class="empty-state" id="documents-empty">
+              <div class="empty-icon" aria-hidden="true">▤</div>
+              <h3>Реестр пока пуст</h3>
+              <p>После распознавания здесь появятся тип документа, номер, дата, ИНН, сумма, НДС и исходный текст для проверки.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="forecast" class="panel forecast-panel" aria-labelledby="forecast-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow eyebrow-blue">Модуль 03</p>
+              <h2 id="forecast-title">Прогноз кассовых разрывов</h2>
+              <p>Дневной план на 30 календарных дней. Расчёт использует введённые ожидаемые операции и их вероятность, а не выдумывает движение денег.</p>
+            </div>
+            <div class="forecast-controls">
+              <label>Начальный остаток, ₽<input id="opening-balance" inputmode="decimal" value="0" aria-label="Начальный остаток в рублях" /></label>
+              <label>Минимальный резерв, ₽<input id="reserve-balance" inputmode="decimal" value="0" aria-label="Минимальный резерв в рублях" /></label>
+            </div>
+          </div>
+
+          <div class="forecast-stats" id="forecast-stats" aria-live="polite"></div>
+          <div class="chart-card">
+            <div class="chart-header"><strong>Прогнозный остаток</strong><span id="chart-caption">Добавьте операции для расчёта.</span></div>
+            <div class="chart-wrap" id="forecast-chart" aria-label="График прогнозного остатка на 30 дней"></div>
+          </div>
+
+          <div class="cash-grid">
+            <form class="operation-form" id="operation-form">
+              <div class="form-heading"><div><p class="eyebrow eyebrow-blue">Новое движение</p><h3>Добавить в план</h3></div><span class="required-note">* обязательное поле</span></div>
+              <div class="form-grid">
+                <label>Направление *
+                  <select id="operation-direction" required>
+                    <option value="income">Поступление</option>
+                    <option value="expense">Списание</option>
+                  </select>
+                </label>
+                <label>Дата *<input id="operation-date" type="date" required /></label>
+                <label>Сумма, ₽ *<input id="operation-amount" inputmode="decimal" placeholder="Например, 125 000" required /></label>
+                <label>Вероятность, % *<input id="operation-probability" type="number" min="0" max="100" value="100" required /></label>
+                <label>Контрагент<input id="operation-counterparty" maxlength="120" placeholder="Наименование или ИНН" /></label>
+                <label>Основание / комментарий<input id="operation-note" maxlength="160" placeholder="Счёт, договор, выплата" /></label>
+              </div>
+              <div class="form-actions"><button class="button button-primary" type="submit">Добавить операцию</button><span id="operation-form-message" class="form-message" aria-live="polite"></span></div>
+            </form>
+
+            <div class="csv-card">
+              <p class="eyebrow eyebrow-blue">Импорт</p>
+              <h3>Загрузить план из CSV</h3>
+              <p>Колонки: <code>дата; направление; сумма; контрагент; вероятность; комментарий</code>. Поддерживаются русские и английские заголовки.</p>
+              <input id="csv-input" type="file" accept=".csv,text/csv" hidden />
+              <div class="csv-actions"><button class="button button-secondary" id="choose-csv" type="button">Загрузить CSV</button><button class="text-button" id="download-csv-template" type="button">Скачать шаблон</button></div>
+              <div class="import-feedback" id="import-feedback" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="operation-list-section">
+            <div class="list-heading"><div><h3>Ожидаемые операции</h3><p>Вероятностная сумма участвует в прогнозе как сумма × вероятность исполнения.</p></div><button class="text-button danger" id="clear-operations" type="button" disabled>Очистить план</button></div>
+            <div class="operation-table-wrap">
+              <table class="operation-table">
+                <thead><tr><th>Дата</th><th>Направление</th><th>Контрагент / основание</th><th>Сумма</th><th>Вероятность</th><th>В прогнозе</th><th aria-label="Действие"></th></tr></thead>
+                <tbody id="operation-table-body"><tr class="empty-row"><td colspan="7">Добавьте операцию вручную, загрузите CSV или внесите распознанный документ в план.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="recommendations" id="recommendations" aria-live="polite"></div>
+        </section>
+
+        <section id="method" class="method-grid" aria-labelledby="method-title">
+          <div class="method-card">
+            <p class="eyebrow eyebrow-blue">Контроль качества</p>
+            <h2 id="method-title">Как проверять первичку</h2>
+            <p>Уверенность относится к качеству прочтения текста. Она не подтверждает юридическую корректность документа. Поля без найденного значения или с низкой уверенностью должны быть проверены бухгалтером до использования в учёте.</p>
+          </div>
+          <div class="method-card formula-card">
+            <p class="eyebrow eyebrow-blue">Формула прогноза</p>
+            <p class="formula">Остаток<sub>день</sub> = Остаток<sub>вчера</sub> + Σ(Поступления × вероятность) − Σ(Списания × вероятность)</p>
+            <p>Кассовый разрыв возникает, когда прогнозный остаток становится ниже заданного резерва. Суммы трактуются как полное фактическое движение денежных средств, включая НДС, если он входит в оплату.</p>
+          </div>
+        </section>
+      </main>
     </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
